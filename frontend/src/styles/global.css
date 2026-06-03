@@ -1,0 +1,175 @@
+/* ── CSS Variables ─────────────────────────────────── */
+:root {
+  --primary:        #0073EA;
+  --primary-hover:  #0060C3;
+  --primary-light:  #E8F3FF;
+  --success:        #00C875;
+  --warning:        #FF8B00;
+  --danger:         #E44258;
+
+  --sidebar-bg:     #1A2840;
+  --sidebar-width:  240px;
+  --header-height:  56px;
+
+  --bg-page:        #F6F7FB;
+  --bg-card:        #FFFFFF;
+  --border:         #EAECF0;
+
+  --text-primary:   #172B4D;
+  --text-secondary: #6B778C;
+  --text-muted:     #98A2B3;
+
+  --shadow-sm:      0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md:      0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg:      0 8px 32px rgba(0,0,0,0.12);
+
+  --radius-sm:      6px;
+  --radius-md:      10px;
+  --radius-lg:      14px;
+}
+
+/* ── Reset & Base ──────────────────────────────────── */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+               'Noto Sans KR', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D0D5DD; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #98A2B3; }
+
+/* ── Sidebar Nav Item ──────────────────────────────── */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-bottom: 2px;
+  border-left: 3px solid transparent;
+  color: rgba(255,255,255,0.62);
+  font-size: 14px;
+  font-weight: 400;
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+.nav-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.9);
+}
+.nav-item.active {
+  background: rgba(0,115,234,0.22);
+  border-left-color: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── Page Card ─────────────────────────────────────── */
+.page-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  padding: 24px;
+}
+
+/* ── Project Card ──────────────────────────────────── */
+.project-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+.project-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* ── Stat Card ─────────────────────────────────────── */
+.stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* ── Table overrides ───────────────────────────────── */
+.wbs-table .ant-table {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border) !important;
+}
+.wbs-table .ant-table-thead > tr > th {
+  background: #F8F9FB !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid var(--border) !important;
+  white-space: nowrap;
+}
+.wbs-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #F2F4F7;
+  font-size: 13px;
+}
+.wbs-table .ant-table-tbody > tr:hover > td {
+  background: #F0F6FF !important;
+}
+.wbs-table .ant-table-row-expand-icon-cell { padding: 0 8px !important; }
+
+/* ── Action Cell ───────────────────────────────────── */
+.action-chip {
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+  min-width: 88px;
+}
+.action-chip:hover {
+  filter: brightness(0.95);
+  transform: scale(1.02);
+}
+
+/* ── Ant Design tweaks ─────────────────────────────── */
+.ant-btn-primary {
+  font-weight: 600 !important;
+}
+.ant-modal-content {
+  border-radius: var(--radius-lg) !important;
+}
+.ant-popover-inner {
+  border-radius: var(--radius-md) !important;
+}
+.ant-tag {
+  border-radius: 20px !important;
+  font-weight: 500 !important;
+  padding: 1px 10px !important;
+}
+.ant-progress-text {
+  font-size: 12px !important;
+}

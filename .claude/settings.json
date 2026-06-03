@@ -1,0 +1,58 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm install*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx prisma*)",
+      "Bash(docker compose*)",
+      "Bash(docker ps*)",
+      "Bash(netstat*)",
+      "Bash(Get-Process*)",
+      "Bash(Get-NetTCPConnection*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(DROP DATABASE*)",
+      "Bash(git push --force*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const raw=require('fs').readFileSync('/dev/stdin','utf8');let d;try{d=JSON.parse(raw)}catch{process.exit(0)}const f=d.tool_input&&d.tool_input.file_path||'';const isFront=f.includes('frontend/src')&&f.match(/\\.tsx?$/);const isBack=f.includes('backend/src')&&f.match(/\\.ts$/);if(!isFront&&!isBack)process.exit(0);const{execSync}=require('child_process');const dir=isFront?'c:/src/aimate_pms/frontend':'c:/src/aimate_pms/backend';try{execSync('npx tsc --noEmit',{cwd:dir,stdio:'inherit',timeout:30000})}catch{process.exit(2)}\"",
+            "timeout": 35000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const raw=require('fs').readFileSync('/dev/stdin','utf8');let d;try{d=JSON.parse(raw)}catch{process.exit(0)}const cmd=(d.tool_input&&d.tool_input.command||'').toLowerCase();const dangerous=['drop table','drop database','delete from','truncate','reset --hard','push --force'];if(dangerous.some(k=>cmd.includes(k))){console.error('\\u274c BLOCKED: 위험한 명령어가 감지되었습니다 —',cmd);process.exit(2)}\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.log('\\u2705 Claude Code 세션 종료. 변경 사항이 있으면 git commit을 잊지 마세요.')\"",
+            "timeout": 3000
+          }
+        ]
+      }
+    ]
+  }
+}

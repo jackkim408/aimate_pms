@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  password  String
+  slackId   String?  @map("slack_id")
+  role      String   @default("member") // admin | manager | member
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ownedProjects  Project[]       @relation("ProjectOwner")
+  assignedTasks  Task[]          @relation("TaskAssignee")
+  taskActions    TaskAction[]    @relation("ActionAssignee")
+  changeHistory  ChangeHistory[] @relation("ChangedBy")
+  wbsVersions    WbsVersion[]    @relation("VersionCreator")
+  notifications  Notification[]
+
+  @@map("users")
+}
+
+model Project {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  startDate   DateTime? @map("start_date") @db.Date
+  endDate     DateTime? @map("end_date") @db.Date
+  ownerId     Int?      @map("owner_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  owner    User?          @relation("ProjectOwner", fields: [ownerId], references: [id])
+  tasks    Task[]
+  keywords ActionKeyword[]
+  versions WbsVersion[]
+
+  @@map("projects")
+}
+
+model Task {
+  id           Int       @id @default(autoincrement())
+  projectId    Int       @map("project_id")
+  parentId     Int?      @map("parent_id")
+  wbsNumber    String    @map("wbs_number")
+  name         String
+  note         String?
+  depth        Int       @default(0)
+  planStart    DateTime? @map("plan_start") @db.Date
+  planEnd      DateTime? @map("plan_end") @db.Date
+  actualStart  DateTime? @map("actual_start") @db.Date
+  actualEnd    DateTime? @map("actual_end") @db.Date
+  assigneeId   Int?      @map("assignee_id")
+  progress     Float     @default(0.0)
+  planProgress Float     @default(0.0) @map("plan_progress")
+  status       String    @default("not_started")
+  // not_started | in_progress | done | delayed | on_hold
+  isMilestone  Boolean   @default(false) @map("is_milestone")
+  sortOrder    Int       @default(0) @map("sort_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  project  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent   Task?        @relation("TaskChildren", fields: [parentId], references: [id])
+  children Task[]       @relation("TaskChildren")
+  assignee User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  actions  TaskAction[]
+
+  @@map("tasks")
+}
+
+model ActionKeyword {
+  id          Int      @id @default(autoincrement())
+  projectId   Int?     @map("project_id") // NULL = 전체 공용
+  name        String
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  project     Project?     @relation(fields: [projectId], references: [id])
+  taskActions TaskAction[]
+
+  @@map("action_keywords")
+}
+
+model TaskAction {
+  id         Int       @id @default(autoincrement())
+  taskId     Int       @map("task_id")
+  keywordId  Int       @map("keyword_id")
+  seqOrder   Int       @default(1) @map("seq_order")
+  weight     Float     @default(0.0)
+  assigneeId Int?      @map("assignee_id")
+  status     String    @default("pending")
+  // pending(접수대기) | received(접수) | in_progress(진행중) | done(완료) | on_hold(보류)
+  progress   Float     @default(0.0)
+  note       String?
+  dueDate    DateTime? @map("due_date") @db.Date
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  task     Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  keyword  ActionKeyword @relation(fields: [keywordId], references: [id])
+  assignee User?         @relation("ActionAssignee", fields: [assigneeId], references: [id])
+
+  @@unique([taskId, keywordId])
+  @@map("task_actions")
+}
+
+model ChangeHistory {
+  id         Int      @id @default(autoincrement())
+  entityType String   @map("entity_type") // task | task_action | project
+  entityId   Int      @map("entity_id")
+  fieldName  String   @map("field_name")
+  oldValue   String?  @map("old_value")
+  newValue   String?  @map("new_value")
+  changedBy  Int?     @map("changed_by")
+  changedAt  DateTime @default(now()) @map("changed_at")
+
+  user User? @relation("ChangedBy", fields: [changedBy], references: [id])
+
+  @@map("change_history")
+}
+
+model WbsVersion {
+  id        Int      @id @default(autoincrement())
+  projectId Int      @map("project_id")
+  versionNo Int      @map("version_no")
+  label     String?
+  snapshot  Json
+  createdBy Int?     @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User?   @relation("VersionCreator", fields: [createdBy], references: [id])
+
+  @@unique([projectId, versionNo])
+  @@map("wbs_versions")
+}
+
+model Notification {
+  id      Int      @id @default(autoincrement())
+  userId  Int      @map("user_id")
+  type    String   // assignment | status_change | deadline
+  title   String?
+  body    String?
+  channel String?  // email | slack | in_app
+  isRead  Boolean  @default(false) @map("is_read")
+  sentAt  DateTime @default(now()) @map("sent_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}

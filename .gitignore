@@ -216,3 +216,37 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ── Node.js / React / TypeScript ──────────────────────────────────────────────
+node_modules/
+dist/
+build/
+.next/
+out/
+
+# Env files (secrets)
+.env
+.env.local
+.env.production
+backend/.env
+
+# TypeScript build artifacts
+*.js.map
+*.d.ts.map
+
+# Vite
+.vite/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+backend/prisma/migrations/*.db
+
+# Docker volumes (local dev)
+postgres_data/
