@@ -4,6 +4,8 @@ import Login from '../pages/Login';
 import ProjectList from '../pages/ProjectList';
 import WBSEditor from '../pages/WBSEditor';
 import MyPage from '../pages/MyPage';
+import KeywordsPage from '../pages/KeywordsPage';
+import UsersPage from '../pages/UsersPage';
 import Layout from '../components/Layout';
 
 function ProtectedRoute() {
@@ -19,10 +21,12 @@ export const router = createBrowserRouter([
       {
         element: <Layout />,
         children: [
-          { path: '/', element: <Navigate to="/projects" replace /> },
+          { path: '/',         element: <Navigate to="/projects" replace /> },
           { path: '/projects', element: <ProjectList /> },
           { path: '/projects/:projectId/wbs', element: <WBSEditor /> },
-          { path: '/mypage', element: <MyPage /> },
+          { path: '/mypage',   element: <MyPage /> },
+          { path: '/keywords', element: <KeywordsPage /> },
+          { path: '/users',    element: <UsersPage /> },
         ],
       },
     ],

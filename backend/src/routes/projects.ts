@@ -2,7 +2,7 @@ import { Router, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middlewares/auth';
-import { recalculateWbsNumbers, rollupProgress } from '../services/wbs.service';
+import { recalculateWbsNumbers } from '../services/wbs.service';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -166,11 +166,6 @@ router.post('/:id/tasks', async (req: AuthRequest, res: Response, next: NextFunc
     });
 
     await recalculateWbsNumbers(projectId, prisma);
-
-    // 부모가 있으면 진척도 즉시 롤업 (하위 공정 평균으로 재계산)
-    if (body.parentId) {
-      await rollupProgress(body.parentId, prisma);
-    }
 
     const updated = await prisma.task.findUnique({
       where: { id: task.id },

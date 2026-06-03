@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button, Space, Typography, Spin, message,
-  Breadcrumb, Row, Col,
+  Breadcrumb, Row, Col, Tabs,
 } from 'antd';
 import {
   PlusOutlined, ArrowLeftOutlined,
   CheckCircleOutlined, ClockCircleOutlined,
   WarningOutlined, BarChartOutlined,
-  FileExcelOutlined,
+  FileExcelOutlined, TableOutlined, ScheduleOutlined,
 } from '@ant-design/icons';
 import { api } from '../api/client';
 import WBSGrid from '../components/wbs/WBSGrid';
+import GanttChart from '../components/wbs/GanttChart';
 import TaskDialog from '../components/wbs/TaskDialog';
 import WBSImportModal from '../components/wbs/WBSImportModal';
 import type { Task, ActionKeyword, User, Project } from '../types';
@@ -179,48 +180,61 @@ export default function WBSEditor() {
         </Row>
       )}
 
-      {/* Color legend */}
-      {!loading && (
-        <div style={{
-          display: 'flex', gap: 16, marginBottom: 12,
-          padding: '8px 14px', background: '#fff',
-          borderRadius: 8, border: '1px solid var(--border)',
-          width: 'fit-content',
-        }}>
-          {[
-            { color: '#C6EFCE', label: '완료 (100%)' },
-            { color: '#D6E4F7', label: '상위 공정' },
-            { color: '#FFC7CE', label: '지연' },
-            { color: '#FFEB9C', label: '진행중' },
-            { color: '#fff', label: '미착수', border: '#e0e0e0' },
-          ].map((item) => (
-            <Space key={item.label} size={6}>
-              <div style={{
-                width: 14, height: 14, borderRadius: 3,
-                background: item.color,
-                border: `1px solid ${item.border ?? item.color}`,
-                flexShrink: 0,
-              }} />
-              <Text style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{item.label}</Text>
-            </Space>
-          ))}
-        </div>
-      )}
-
-      {/* WBS Grid */}
+      {/* WBS 그리드 / 간트 차트 탭 */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 80 }}>
           <Spin size="large" />
         </div>
       ) : (
-        <WBSGrid
-          tasks={tasks}
-          keywords={keywords}
-          users={users}
-          projectId={Number(projectId)}
-          onRefresh={fetchAll}
-          onAddChild={(t) => { setParentTask(t); setEditingTask(null); setTaskDialogOpen(true); }}
-          onEdit={(t) => { setEditingTask(t); setParentTask(null); setTaskDialogOpen(true); }}
+        <Tabs
+          defaultActiveKey="grid"
+          size="middle"
+          style={{ marginTop: 4 }}
+          items={[
+            {
+              key: 'grid',
+              label: <Space size={6}><TableOutlined />WBS 그리드</Space>,
+              children: (
+                <>
+                  {/* 색상 범례 */}
+                  <div style={{
+                    display: 'flex', gap: 16, marginBottom: 12,
+                    padding: '7px 14px', background: '#fff',
+                    borderRadius: 8, border: '1px solid var(--border)',
+                    width: 'fit-content',
+                  }}>
+                    {[
+                      { color: '#C6EFCE', label: '완료 (100%)' },
+                      { color: '#D6E4F7', label: '상위 공정' },
+                      { color: '#FFC7CE', label: '지연' },
+                      { color: '#FFEB9C', label: '진행중' },
+                      { color: '#fff',    label: '미착수', border: '#e0e0e0' },
+                    ].map(item => (
+                      <Space key={item.label} size={6}>
+                        <div style={{ width: 13, height: 13, borderRadius: 3, flexShrink: 0,
+                          background: item.color, border: `1px solid ${item.border ?? item.color}` }} />
+                        <Text style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{item.label}</Text>
+                      </Space>
+                    ))}
+                  </div>
+                  <WBSGrid
+                    tasks={tasks}
+                    keywords={keywords}
+                    users={users}
+                    projectId={Number(projectId)}
+                    onRefresh={fetchAll}
+                    onAddChild={(t) => { setParentTask(t); setEditingTask(null); setTaskDialogOpen(true); }}
+                    onEdit={(t) => { setEditingTask(t); setParentTask(null); setTaskDialogOpen(true); }}
+                  />
+                </>
+              ),
+            },
+            {
+              key: 'gantt',
+              label: <Space size={6}><ScheduleOutlined />간트 차트</Space>,
+              children: <GanttChart tasks={tasks} />,
+            },
+          ]}
         />
       )}
 

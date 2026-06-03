@@ -52,23 +52,28 @@ export async function calcTaskProgress(
   return Math.round(progress * 10) / 10;
 }
 
-// 부모로 진척도 롤업 — 자식들의 평균
+// 부모로 진척도 롤업 — 자식들의 평균 (리프 노드는 사용자 직접 입력이므로 건드리지 않음)
 export async function rollupProgress(
   taskId: number,
   prisma: PrismaClient,
 ): Promise<void> {
   const children = await prisma.task.findMany({
     where: { parentId: taskId },
-    select: { id: true, progress: true, parentId: true },
+    select: { progress: true },
   });
 
-  let progress: number;
+  // 리프 노드: 사용자가 직접 입력한 progress 값 유지, 부모로만 전파
   if (children.length === 0) {
-    progress = await calcTaskProgress(taskId, prisma);
-  } else {
-    const total = children.reduce((sum, c) => sum + c.progress, 0);
-    progress = Math.round((total / children.length) * 10) / 10;
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { parentId: true },
+    });
+    if (task?.parentId) await rollupProgress(task.parentId, prisma);
+    return;
   }
+
+  const avg = children.reduce((s, c) => s + c.progress, 0) / children.length;
+  const progress = Math.round(avg * 10) / 10;
 
   const task = await prisma.task.update({
     where: { id: taskId },

@@ -2,7 +2,6 @@ import { Router, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middlewares/auth';
-import { calcTaskProgress, rollupProgress } from '../services/wbs.service';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -12,25 +11,26 @@ const STATUS_PROGRESS: Record<string, number> = {
 };
 
 const actionUpdateSchema = z.object({
-  seqOrder: z.number().optional(),
-  weight: z.number().min(0).max(100).optional(),
+  seqOrder:   z.number().optional(),
+  weight:     z.number().min(0).max(100).optional(),
   assigneeId: z.number().nullable().optional(),
-  status: z.enum(['pending', 'received', 'in_progress', 'done', 'on_hold']).optional(),
-  note: z.string().nullable().optional(),
-  dueDate: z.string().nullable().optional(),
+  status:     z.enum(['pending', 'received', 'in_progress', 'done', 'on_hold']).optional(),
+  note:       z.string().nullable().optional(),
+  dueDate:    z.string().nullable().optional(),
 });
 
 const actionInclude = {
-  keyword: { select: { id: true, name: true, sortOrder: true } },
+  keyword:  { select: { id: true, name: true, sortOrder: true } },
   assignee: { select: { id: true, name: true } },
 };
 
 router.use(authenticate);
 
 // PATCH /api/actions/:id
+// 액션 상태/담당자/가중치 변경 — 공정 진척도는 사용자가 직접 입력하므로 여기서 갱신하지 않음
 router.patch('/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const id = Number(req.params.id);
+    const id   = Number(req.params.id);
     const body = actionUpdateSchema.parse(req.body);
 
     const progressPatch =
@@ -39,29 +39,18 @@ router.patch('/:id', async (req: AuthRequest, res: Response, next: NextFunction)
     const action = await prisma.taskAction.update({
       where: { id },
       data: {
-        seqOrder: body.seqOrder,
-        weight: body.weight,
+        seqOrder:   body.seqOrder,
+        weight:     body.weight,
         assigneeId: body.assigneeId,
-        status: body.status,
-        note: body.note,
+        status:     body.status,
+        note:       body.note,
         dueDate:
           body.dueDate === null ? null :
-          body.dueDate ? new Date(body.dueDate) : undefined,
+          body.dueDate         ? new Date(body.dueDate) : undefined,
         ...progressPatch,
       },
       include: actionInclude,
     });
-
-    const taskProgress = await calcTaskProgress(action.taskId, prisma);
-    const task = await prisma.task.update({
-      where: { id: action.taskId },
-      data: { progress: taskProgress },
-      select: { parentId: true },
-    });
-
-    if (task.parentId) {
-      await rollupProgress(task.parentId, prisma);
-    }
 
     return res.json(action);
   } catch (err) {
@@ -80,17 +69,6 @@ router.delete('/:id', async (req: AuthRequest, res: Response, next: NextFunction
     if (!action) return res.status(404).json({ message: '액션을 찾을 수 없습니다.' });
 
     await prisma.taskAction.delete({ where: { id } });
-
-    const taskProgress = await calcTaskProgress(action.taskId, prisma);
-    const task = await prisma.task.update({
-      where: { id: action.taskId },
-      data: { progress: taskProgress },
-      select: { parentId: true },
-    });
-
-    if (task.parentId) {
-      await rollupProgress(task.parentId, prisma);
-    }
 
     return res.status(204).send();
   } catch (err) {

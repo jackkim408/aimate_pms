@@ -10,6 +10,8 @@ import {
   SettingOutlined,
   AppstoreOutlined,
   RocketOutlined,
+  TagsOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/auth.store';
 
@@ -18,6 +20,8 @@ const { Content } = AntLayout;
 const NAV_ITEMS = [
   { key: '/projects', icon: <FolderOpenOutlined />, label: '프로젝트' },
   { key: '/mypage',   icon: <AppstoreOutlined />,   label: '마이페이지' },
+  { key: '/keywords', icon: <TagsOutlined />,        label: '키워드 관리' },
+  { key: '/users',    icon: <TeamOutlined />,         label: '사용자 관리' },
 ];
 
 const ROLE_LABEL: Record<string, string> = {

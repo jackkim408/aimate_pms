@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Table, Button, Space, Popconfirm, Progress,
-  Tooltip, message, Empty, Avatar,
+  Tooltip, message, Empty, Avatar, InputNumber,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -46,59 +46,95 @@ function buildTree(tasks: Task[]): TaskNode[] {
   return roots;
 }
 
-function calcPlanProgress(task: Task): number {
-  if (!task.planStart || !task.planEnd) return 0;
-  const now = dayjs();
-  const start = dayjs(task.planStart);
-  const end = dayjs(task.planEnd);
-  const total = end.diff(start, 'day');
-  if (total <= 0) return 100;
-  return Math.min(100, Math.max(0, Math.round((now.diff(start, 'day') / total) * 100)));
-}
 
 function getRowStyle(record: TaskNode): React.CSSProperties {
   if (record.progress >= 100) return { background: '#C6EFCE' };
   if (record.children !== undefined) return { background: '#D6E4F7' };
-  const plan = calcPlanProgress(record);
-  if (plan > record.progress + 5) return { background: '#FFC7CE' };
   if (record.status === 'in_progress') return { background: '#FFEB9C' };
   return {};
 }
 
-function ProgressCell({ task }: { task: TaskNode }) {
-  const isParent = task.children !== undefined;
-  const plan     = calcPlanProgress(task);
-  const isDelayed = !isParent && plan > task.progress + 5;
+function ProgressCell({
+  task,
+  onUpdate,
+}: {
+  task: TaskNode;
+  onUpdate: (id: number, progress: number) => Promise<void>;
+}) {
+  const [editing, setEditing]   = useState(false);
+  const [inputVal, setInputVal] = useState(0);
+
+  const isParent = task.children !== undefined; // children 배열이 있으면 부모 공정
+  const pct      = Math.round(task.progress);
+
+  function startEdit() {
+    setInputVal(pct);
+    setEditing(true);
+  }
+
+  async function commit() {
+    setEditing(false);
+    const clamped = Math.min(100, Math.max(0, inputVal));
+    if (clamped === pct) return;
+    await onUpdate(task.id, clamped);
+  }
 
   return (
-    <div style={{ minWidth: 110 }}>
+    <div style={{ minWidth: 120 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: isDelayed ? '#E44258' : '#172B4D' }}>
-          {Math.round(task.progress)}%
-        </span>
+
+        {/* 진척도 값 */}
         {isParent ? (
+          /* 부모: 읽기 전용 */
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#172B4D' }}>{pct}%</span>
+        ) : editing ? (
+          /* 리프 편집 중 */
+          <InputNumber
+            size="small"
+            min={0} max={100}
+            value={inputVal}
+            onChange={v => setInputVal(v ?? 0)}
+            onPressEnter={commit}
+            onBlur={commit}
+            onKeyDown={e => e.key === 'Escape' && setEditing(false)}
+            autoFocus
+            style={{ width: 84 }}
+            addonAfter="%"
+          />
+        ) : (
+          /* 리프 기본: 클릭하여 편집 */
+          <Tooltip title="클릭하여 진척도 입력">
+            <span
+              onClick={startEdit}
+              style={{
+                fontSize: 12, fontWeight: 700,
+                color: pct >= 100 ? '#00C875' : '#172B4D',
+                cursor: 'pointer',
+                borderBottom: '1px dashed #C0C8D8',
+              }}
+            >
+              {pct}%
+            </span>
+          </Tooltip>
+        )}
+
+        {/* 우측 배지 */}
+        {isParent && (
           <Tooltip title="하위 공정 진척도의 평균으로 자동 계산됩니다.">
             <span style={{
-              fontSize: 10, color: '#0073EA',
-              background: '#E8F3FF', borderRadius: 4,
-              padding: '1px 6px', fontWeight: 600, cursor: 'default',
+              fontSize: 10, color: '#0073EA', background: '#E8F3FF',
+              borderRadius: 4, padding: '1px 6px', fontWeight: 600, cursor: 'default',
             }}>
               자동집계
             </span>
           </Tooltip>
-        ) : (
-          <span style={{ fontSize: 10, color: '#98A2B3' }}>목표 {plan}%</span>
         )}
       </div>
       <Progress
-        percent={Math.round(task.progress)}
+        percent={pct}
         size={{ height: 5 }}
         showInfo={false}
-        strokeColor={
-          task.progress >= 100 ? '#00C875' :
-          isDelayed             ? '#E44258' :
-          isParent              ? '#6E9BD1' : '#0073EA'
-        }
+        strokeColor={pct >= 100 ? '#00C875' : isParent ? '#6E9BD1' : '#0073EA'}
         trailColor="#EAECF0"
       />
     </div>
@@ -109,6 +145,16 @@ export default function WBSGrid({
   tasks, keywords, users, onRefresh, onAddChild, onEdit,
 }: WBSGridProps) {
   const [mapModalTask, setMapModalTask] = useState<Task | null>(null);
+
+  /* 리프 공정 진척도 직접 입력 → PATCH → 부모 자동 롤업 */
+  async function handleProgressUpdate(taskId: number, progress: number) {
+    try {
+      await api.patch(`/tasks/${taskId}`, { progress });
+      onRefresh();
+    } catch {
+      message.error('진척도 저장에 실패했습니다.');
+    }
+  }
 
   async function handleDelete(task: Task) {
     try {
@@ -178,8 +224,10 @@ export default function WBSGrid({
     },
     {
       title: '진척도',
-      width: 130,
-      render: (_: unknown, r: TaskNode) => <ProgressCell task={r} />,
+      width: 140,
+      render: (_: unknown, r: TaskNode) => (
+        <ProgressCell task={r} onUpdate={handleProgressUpdate} />
+      ),
     },
     {
       title: '',
